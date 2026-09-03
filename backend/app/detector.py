@@ -2,6 +2,8 @@ import os
 import sys
 import uuid
 import json
+import joblib
+import pandas as pd
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
@@ -17,6 +19,26 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from backend.app.database import SessionLocal, get_db
 from backend.app.models import Customer, Order, Payment, Subscription, RecoveryCase, AuditLog
 from backend.app.policy import RecoveryAction, evaluate_policy
+
+# Path to trained Random Forest Recovery ML Model
+ML_MODEL_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "revenue_recovery", "data", "recovery_model.joblib"
+)
+
+_ml_model = None
+
+def get_loaded_ml_model():
+    """Lazily loads and caches the trained Machine Learning model pipeline."""
+    global _ml_model
+    if _ml_model is None and os.path.exists(ML_MODEL_PATH):
+        try:
+            _ml_model = joblib.load(ML_MODEL_PATH)
+            print(f"ML Recovery Model loaded successfully from {ML_MODEL_PATH}")
+        except Exception as e:
+            print(f"Warning: Failed to load ML model from {ML_MODEL_PATH}: {e}")
+    return _ml_model
+
 
 def log_audit_event(db: Session, case_id: uuid.UUID, step: str, status: str, action: str = None, message: str = ""):
     log = AuditLog(
@@ -371,10 +393,106 @@ def get_rule_based_diagnosis(payment_info: dict, customer_info: dict) -> dict:
     }
 
 
+def get_ml_diagnosis(customer_info: dict, payment_info: dict, subscription_info: dict) -> dict:
+    """
+    Evaluates recovery cases using the trained Random Forest Machine Learning model pipeline.
+    Returns:
+        dict with diagnosis, confidence percentage, recommended action, and feature reasoning.
+    """
+    model = get_loaded_ml_model()
+    if model is None:
+        return None
+
+    try:
+        amount = float(payment_info.get("amount", 0.0))
+        raw_reason = str(payment_info.get("failure_reason") or "NONE").upper()
+        code = str(payment_info.get("error_code") or "").upper()
+        case_type = payment_info.get("type") or ""
+        retry_count = int(payment_info.get("retry_count", 0))
+        risk_score = float(customer_info.get("risk_score", 0.5))
+        previous_success_rate = max(0.0, min(1.0, 1.0 - risk_score))
+
+        # Standardize failure reasons for the ML pipeline
+        if "INSUFFICIENT" in raw_reason or "INSUFFICIENT" in code:
+            failure_reason = "INSUFFICIENT_FUNDS"
+        elif "EXPIRED" in raw_reason or "EXPIRED" in code or "CARD" in raw_reason:
+            failure_reason = "CARD_DECLINED"
+        elif "TIMEOUT" in raw_reason or "TIMEOUT" in code:
+            failure_reason = "TIMEOUT"
+        elif "NETWORK" in raw_reason or "NETWORK" in code:
+            failure_reason = "NETWORK_ERROR"
+        elif "BANK" in raw_reason or "BANK" in code or "AUTH" in raw_reason:
+            failure_reason = "BANK_ERROR"
+        else:
+            failure_reason = "NONE" if case_type == "checkout_abandoned" else "BANK_ERROR"
+
+        payment_status = "ABANDONED" if case_type == "checkout_abandoned" else "FAILED"
+        checkout_abandoned = (case_type == "checkout_abandoned")
+        days_overdue = 0
+
+        # Construct single-row DataFrame matching the model training schema
+        sample_df = pd.DataFrame([{
+            "amount": amount,
+            "payment_status": payment_status,
+            "failure_reason": failure_reason,
+            "retry_count": retry_count,
+            "previous_success_rate": round(previous_success_rate, 2),
+            "days_overdue": days_overdue,
+            "checkout_abandoned": checkout_abandoned
+        }])
+
+        pred_action = model.predict(sample_df)[0]
+        pred_probs = model.predict_proba(sample_df)[0]
+        class_idx = list(model.classes_).index(pred_action)
+        confidence = float(pred_probs[class_idx])
+
+        # Map ML prediction string to RecoveryAction enum and generate dynamic explanation
+        if pred_action == "STOP":
+            recommended_action = RecoveryAction.STOP
+            diagnosis = f"Max retry limit exceeded or unrecoverable error ({failure_reason})."
+            reasoning = f"ML Model detected retry_count={retry_count} (confidence: {confidence*100:.1f}%). Halting automated retries to prevent customer fatigue."
+        elif pred_action == "ESCALATE_HUMAN":
+            recommended_action = RecoveryAction.ESCALATE_TO_HUMAN
+            diagnosis = f"High-risk case ({payment_info.get('currency', 'USD')} {amount:,.2f}) flagged for manual review."
+            reasoning = f"ML Model evaluated case as high-value/high-risk with {confidence*100:.1f}% confidence. Escaping to human account manager."
+        elif pred_action == "RETRY_PAYMENT":
+            if case_type == "subscription_renewal_failure":
+                recommended_action = RecoveryAction.RETRY_SUBSCRIPTION
+            else:
+                recommended_action = RecoveryAction.RETRY_PAYMENT
+            diagnosis = f"Transient failure ({failure_reason}) with strong historical success pattern."
+            reasoning = f"ML Model recommended automated retry with {confidence*100:.1f}% confidence based on prior success rate ({previous_success_rate*100:.0f}%) and retry count ({retry_count})."
+        else:  # SEND_PAYMENT_LINK
+            if case_type == "checkout_abandoned":
+                recommended_action = RecoveryAction.SEND_REMINDER
+                diagnosis = "Customer abandoned checkout without completing payment attempt."
+                reasoning = f"ML Model identified checkout drop-off with {confidence*100:.1f}% confidence. Automated reminder/link recovery recommended."
+            else:
+                recommended_action = RecoveryAction.SEND_PAYMENT_LINK
+                diagnosis = f"Payment failure requiring customer action ({failure_reason})."
+                reasoning = f"ML Model recommended dynamic payment link with {confidence*100:.1f}% confidence to let customer update payment credentials."
+
+        return {
+            "diagnosis": diagnosis,
+            "confidence": round(confidence, 2),
+            "recommended_action": recommended_action,
+            "reasoning": reasoning
+        }
+    except Exception as e:
+        print(f"Warning: ML Model inference failed: {e}. Falling back...")
+        return None
+
+
 def get_ai_diagnosis(customer_info: dict, payment_info: dict, subscription_info: dict) -> dict:
+    # 1. Primary: Use Trained Random Forest ML Model
+    ml_res = get_ml_diagnosis(customer_info, payment_info, subscription_info)
+    if ml_res is not None:
+        return ml_res
+
+    # 2. Secondary: Use Google Gemini LLM if API Key is configured
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    
-    prompt = f"""
+    if api_key:
+        prompt = f"""
 You are an expert payment intelligence analyst for an e-commerce and subscription system.
 Analyze the following customer history and payment failure context to diagnose the failure and recommend a recovery strategy.
 
@@ -389,8 +507,6 @@ SUBSCRIPTION CONTEXT:
 
 Your output must be a structured JSON object matching the requested schema.
 """
-    
-    if api_key:
         try:
             client = genai.Client(api_key=api_key)
             response = client.models.generate_content(
@@ -406,7 +522,9 @@ Your output must be a structured JSON object matching the requested schema.
         except Exception as e:
             print(f"Warning: Gemini API call failed: {e}. Falling back to rule-based diagnoser.")
             
+    # 3. Fallback: Rule-based engine
     return get_rule_based_diagnosis(payment_info, customer_info)
+
 
 
 def run_diagnosis_cycle(db: Session):
