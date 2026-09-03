@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Revenue Recovery Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #131a26;
+            --bg-card: rgba(30, 41, 59, 0.4);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            
+            --accent-primary: #3b82f6;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-purple: #8b5cf6;
+            
+            --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.5;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-section h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.25rem;
+        }
+
+        .logo-section p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .actions-section {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: none;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+        }
+
+        .stat-card.risk::before { background: var(--accent-danger); }
+        .stat-card.recovered::before { background: var(--accent-success); }
+        .stat-card.total::before { background: var(--accent-primary); }
+        .stat-card.rate::before { background: var(--accent-purple); }
+
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.8s ease;
+        }
+
+        .stat-card.rate .progress-bar {
+            background: linear-gradient(90deg, var(--accent-purple) 0%, #a78bfa 100%);
+        }
+
+        /* Controls / Filter Section */
+        .controls-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .search-input {
+            width: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .filters-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .select-filter {
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1.5rem 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            min-width: 160px;
+        }
+
+        .select-filter:focus {
+            border-color: var(--accent-primary);
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+
+        /* Cases Section */
+        .cases-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .cases-count {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: rgba(15, 23, 42, 0.3);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr {
+            transition: background-color 0.2s ease;
+        }
+
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.015);
+        }
+
+        /* Customer Info */
+        .customer-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .customer-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .customer-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.1rem;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+            letter-spacing: 0.02em;
+        }
+
+        .badge-payment {
+            background-color: rgba(59, 130, 246, 0.12);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .badge-subscription {
+            background-color: rgba(139, 92, 246, 0.12);
+            color: #c084fc;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .badge-checkout {
+            background-color: rgba(245, 158, 11, 0.12);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .badge-open {
+            background-color: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .badge-recovered {
+            background-color: rgba(16, 119, 81, 0.12);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 119, 81, 0.2);
+        }
+
+        /* Risk Slider / Progress */
+        .risk-score-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 100px;
+        }
+
+        .risk-bar-bg {
+            flex: 1;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .risk-text {
+            font-size: 0.8rem;
+            font-weight: 600;
+            width: 2rem;
+            text-align: right;
+        }
+
+        .risk-high { color: var(--accent-danger); }
+        .risk-medium { color: var(--accent-warning); }
+        .risk-low { color: var(--accent-success); }
+
+        .loading-overlay {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: 2px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Toast Alert */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: #1e293b;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-section">
+                <h1>AI Revenue Recovery Dashboard</h1>
+                <p>Day 2 - Real-time Risk Detection & Resolution Shell</p>
+            </div>
+            <div class="actions-section">
+                <button class="btn btn-secondary" onclick="simulateFailedPayment()">
+                    <svg style="width: 1rem; height: 1rem; fill: currentColor;" viewBox="0 0 24 24">
+                        <path d="M19 13H5v-2h14v2z"/>
+                    </svg>
+                    Simulate Failure
+                </button>
+                <button class="btn" onclick="runRiskDetector()">
+                    <svg style="width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2;" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3 3L22 4"/>
+                    </svg>
+                    Run Detector
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Section -->
+        <section class="stats-grid">
+            <!-- Revenue At Risk -->
+            <div class="stat-card risk">
+                <span class="stat-label">Revenue At Risk</span>
+                <span class="stat-value" id="val-risk">₹0.00</span>
+                <span class="stat-meta">
+                    <svg style="width: 1rem; height: 1rem; color: var(--accent-danger); fill: currentColor;" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Money in recovery funnel
+                </span>
+            </div>
+
+            <!-- Revenue Recovered -->
+            <div class="stat-card recovered">
+                <span class="stat-label">Recovered Revenue</span>
+                <span class="stat-value" id="val-recovered">₹0.00</span>
+                <span class="stat-meta">
+                    <svg style="width: 1rem; height: 1rem; color: var(--accent-success); fill: currentColor;" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Successfully recaptured
+                </span>
+            </div>
+
+            <!-- Active Risk Cases -->
+            <div class="stat-card total">
+                <span class="stat-label">Active Risk Cases</span>
+                <span class="stat-value" id="val-cases-count">0</span>
+                <span class="stat-meta" id="val-payments-info">
+                    Scanning orders & subscriptions
+                </span>
+            </div>
+
+            <!-- Recovery Rate -->
+            <div class="stat-card rate">
+                <span class="stat-label">Recovery Rate</span>
+                <span class="stat-value" id="val-recovery-rate">0.0%</span>
+                <span class="stat-meta" style="flex-direction: column; align-items: flex-start; gap: 0.25rem;">
+                    <span>Out of total failures</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="rate-bar" style="width: 0%"></div>
+                    </div>
+                </span>
+            </div>
+        </section>
+
+        <!-- Filters Section -->
+        <section class="controls-section">
+            <div class="search-box">
+                <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" class="search-input" id="search-input" placeholder="Search by customer name or email..." oninput="handleFilterChange()">
+            </div>
+            
+            <div class="filters-group">
+                <!-- Case Type -->
+                <select class="select-filter" id="type-filter" onchange="handleFilterChange()">
+                    <option value="">All Risk Types</option>
+                    <option value="payment_failure">Payment Failure</option>
+                    <option value="checkout_abandoned">Checkout Abandoned</option>
+                    <option value="subscription_renewal_failure">Subscription Renewal Failure</option>
+                </select>
+                
+                <!-- Status -->
+                <select class="select-filter" id="status-filter" onchange="handleFilterChange()">
+                    <option value="">All Statuses</option>
+                    <option value="open">Open</option>
+                    <option value="recovered">Recovered</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Cases Table -->
+        <main class="cases-card">
+            <div class="table-header">
+                <h2>Identified Revenue Risks</h2>
+                <span class="cases-count" id="table-count">0 Cases Listed</span>
+            </div>
+            
+            <div class="table-wrapper">
+                <table id="cases-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Risk Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Risk Score</th>
+                            <th>Identified At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Content loaded dynamically -->
+                    </tbody>
+                </table>
+                <div id="table-loading" class="loading-overlay">
+                    <div class="spinner"></div>
+                    Loading recovery cases...
+                </div>
+                <div id="table-empty" class="empty-state" style="display: none;">
+                    <h3>No recovery cases found</h3>
+                    <p>Try modifying your filters or search terms.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Alert Container -->
+    <div id="toast" class="toast">
+        <svg style="width: 1.25rem; height: 1.25rem; color: var(--accent-success); fill: currentColor;" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span id="toast-message">Success!</span>
+    </div>
+
+    <script>
+        // Load stats and cases on page mount
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardData();
+        });
+
+        async function loadDashboardData() {
+            showLoading(true);
+            try {
+                await Promise.all([
+                    fetchStats(),
+                    fetchCases()
+                ]);
+            } catch (err) {
+                console.error("Error loading dashboard data:", err);
+                showToast("Failed to load dashboard data", "danger");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function fetchStats() {
+            const res = await fetch('/api/stats');
+            if (!res.ok) throw new Error("Failed to fetch stats");
+            const data = await res.json();
+            
+            // Format stats values
+            document.getElementById('val-risk').textContent = `₹${parseFloat(data.revenue_at_risk).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('val-recovered').textContent = `₹${parseFloat(data.recovered_revenue).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('val-cases-count').textContent = data.failed_payments_count;
+            document.getElementById('val-payments-info').textContent = `Succeeded: ${data.success_payments_count} / Failed: ${data.failed_payments_count}`;
+            document.getElementById('val-recovery-rate').textContent = `${data.recovery_rate_percent}%`;
+            document.getElementById('rate-bar').style.width = `${data.recovery_rate_percent}%`;
+        }
+
+        async function fetchCases() {
+            const search = document.getElementById('search-input').value;
+            const type = document.getElementById('type-filter').value;
+            const status = document.getElementById('status-filter').value;
+            
+            let url = `/api/recovery-cases?limit=100`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            if (type) url += `&type=${encodeURIComponent(type)}`;
+            if (status) url += `&status=${encodeURIComponent(status)}`;
+            
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Failed to fetch cases");
+            const cases = await res.json();
+            
+            renderCases(cases);
+        }
+
+        function renderCases(cases) {
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('table-empty');
+            const countLabel = document.getElementById('table-count');
+            
+            tbody.innerHTML = '';
+            countLabel.textContent = `${cases.length} Case${cases.length === 1 ? '' : 's'} Listed`;
+            
+            if (cases.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+            
+            cases.forEach(c => {
+                const tr = document.createElement('tr');
+                
+                // Risk Badge styling
+                let typeBadge = '';
+                if (c.type === 'payment_failure') {
+                    typeBadge = `<span class="badge badge-payment">Payment Failure</span>`;
+                } else if (c.type === 'checkout_abandoned') {
+                    typeBadge = `<span class="badge badge-checkout">Checkout Abandoned</span>`;
+                } else {
+                    typeBadge = `<span class="badge badge-subscription">Sub Renewal Fail</span>`;
+                }
+                
+                // Status Badge styling
+                const statusBadge = c.status === 'open' 
+                    ? `<span class="badge badge-open">Open</span>`
+                    : `<span class="badge badge-recovered">Recovered</span>`;
+                
+                // Risk Score styling
+                const riskVal = parseFloat(c.risk_score);
+                let riskClass = 'risk-low';
+                let riskColor = 'var(--accent-success)';
+                if (riskVal >= 0.7) {
+                    riskClass = 'risk-high';
+                    riskColor = 'var(--accent-danger)';
+                } else if (riskVal >= 0.3) {
+                    riskClass = 'risk-medium';
+                    riskColor = 'var(--accent-warning)';
+                }
+                
+                const riskDisplay = `
+                    <div class="risk-score-display">
+                        <div class="risk-bar-bg">
+                            <div class="risk-bar-fill" style="width: ${riskVal * 100}%; background-color: ${riskColor}"></div>
+                        </div>
+                        <span class="risk-text ${riskClass}">${(riskVal * 100).toFixed(0)}%</span>
+                    </div>
+                `;
+                
+                // Date formatting
+                const date = new Date(c.created_at);
+                const dateString = date.toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                // Amount formatting
+                const formattedAmount = `₹${parseFloat(c.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                
+                tr.innerHTML = `
+                    <td>
+                        <div class="customer-info">
+                            <span class="customer-name">${escapeHtml(c.customer.name)}</span>
+                            <span class="customer-email">${escapeHtml(c.customer.email)}</span>
+                        </div>
+                    </td>
+                    <td>${typeBadge}</td>
+                    <td style="font-weight: 700;">${formattedAmount}</td>
+                    <td>${statusBadge}</td>
+                    <td>${riskDisplay}</td>
+                    <td style="color: var(--text-secondary); font-size: 0.85rem;">${dateString}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        let filterTimeout;
+        function handleFilterChange() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                fetchCases();
+            }, 300);
+        }
+
+        function showLoading(show) {
+            document.getElementById('table-loading').style.display = show ? 'flex' : 'none';
+        }
+
+        async function runRiskDetector() {
+            showLoading(true);
+            try {
+                const res = await fetch('/api/run-detector', { method: 'POST' });
+                if (!res.ok) throw new Error("Failed to run detector");
+                const data = await res.json();
+                
+                showToast("Detector ran successfully! Table updated.");
+                await loadDashboardData();
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to execute detector script", "danger");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function simulateFailedPayment() {
+            showLoading(true);
+            try {
+                const res = await fetch('/api/simulate-failure', { method: 'POST' });
+                if (!res.ok) throw new Error("Failed to simulate failure");
+                const data = await res.json();
+                
+                showToast(`Failure simulated for ${data.customer_name}! Risk Case created.`);
+                await loadDashboardData();
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to simulate failed payment", "danger");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.textContent = message;
+            
+            if (type === "danger") {
+                toast.style.borderLeft = "4px solid var(--accent-danger)";
+            } else {
+                toast.style.borderLeft = "4px solid var(--accent-success)";
+            }
+            
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
