@@ -72,61 +72,66 @@
 }
 
 [data-theme="dark"] {
-  --bg-primary: #12151C;
-  --bg-secondary: #1A1F2B;
-  --bg-card: #181D28;
-  --bg-card-solid: #181D28;
-  --bg-input: #11141B;
-  --bg-table-header: #141822;
-  --bg-table-hover: rgba(255, 255, 255, 0.03);
+  /* Rich Roasted Espresso & Mocha Brown Dark Palette */
+  --bg-primary: #140E0B;
+  --bg-secondary: #1C1410;
+  --bg-card: #201712;
+  --bg-card-solid: #201712;
+  --bg-card-hover: #271D17;
+  --bg-input: #19110D;
+  --bg-table-header: #1A120E;
+  --bg-table-hover: rgba(220, 185, 155, 0.05);
   
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.16);
-  --border-focus: #3B82F6;
+  /* Soft Bronze Glass Borders */
+  --border-color: rgba(220, 185, 155, 0.12);
+  --border-hover: rgba(220, 185, 155, 0.24);
+  --border-focus: #D97706;
   
-  --text-primary: #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --text-muted: #6B7280;
+  /* Cream & Warm Mocha Text */
+  --text-primary: #FDFAF6;
+  --text-secondary: #C2AEA0;
+  --text-muted: #887467;
   
-  --accent-primary: #3B82F6;
-  --accent-primary-hover: #2563EB;
-  --accent-ai: #818CF8;
-  --accent-success: #22C55E;
+  /* Warm Amber & Earth Accents */
+  --accent-primary: #D97706;
+  --accent-primary-hover: #B45309;
+  --accent-ai: #F59E0B;
+  --accent-success: #34D399;
   --accent-warning: #F59E0B;
-  --accent-danger: #EF4444;
+  --accent-danger: #F87171;
   
-  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
-  --card-shadow-hover: 0 8px 30px -4px rgba(0, 0, 0, 0.7);
-  --btn-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+  --card-shadow-hover: 0 10px 30px -4px rgba(0, 0, 0, 0.65);
+  --btn-shadow: 0 4px 14px rgba(217, 119, 6, 0.3);
   
-  --badge-payment-bg: rgba(59, 130, 246, 0.15);
-  --badge-payment-text: #93C5FD;
-  --badge-payment-border: rgba(59, 130, 246, 0.3);
+  --badge-payment-bg: rgba(217, 119, 6, 0.14);
+  --badge-payment-text: #FCD34D;
+  --badge-payment-border: rgba(217, 119, 6, 0.28);
   
-  --badge-subscription-bg: rgba(99, 102, 241, 0.15);
-  --badge-subscription-text: #A5B4FC;
-  --badge-subscription-border: rgba(99, 102, 241, 0.3);
+  --badge-subscription-bg: rgba(245, 158, 11, 0.14);
+  --badge-subscription-text: #FDE68A;
+  --badge-subscription-border: rgba(245, 158, 11, 0.28);
   
-  --badge-checkout-bg: rgba(255, 255, 255, 0.06);
-  --badge-checkout-text: #D1D5DB;
-  --badge-checkout-border: rgba(255, 255, 255, 0.12);
+  --badge-checkout-bg: rgba(234, 179, 8, 0.14);
+  --badge-checkout-text: #FEF08A;
+  --badge-checkout-border: rgba(234, 179, 8, 0.28);
   
-  --badge-open-bg: rgba(245, 158, 11, 0.15);
+  --badge-open-bg: rgba(245, 158, 11, 0.14);
   --badge-open-text: #FDE68A;
-  --badge-open-border: rgba(245, 158, 11, 0.3);
+  --badge-open-border: rgba(245, 158, 11, 0.28);
   
-  --badge-recovered-bg: rgba(34, 197, 94, 0.15);
-  --badge-recovered-text: #86EFAC;
-  --badge-recovered-border: rgba(34, 197, 94, 0.3);
+  --badge-recovered-bg: rgba(52, 211, 153, 0.14);
+  --badge-recovered-text: #A7F3D0;
+  --badge-recovered-border: rgba(52, 211, 153, 0.28);
   
-  --badge-blocked-bg: rgba(239, 68, 68, 0.15);
+  --badge-blocked-bg: rgba(248, 113, 113, 0.14);
   --badge-blocked-text: #FCA5A5;
-  --badge-blocked-border: rgba(239, 68, 68, 0.3);
+  --badge-blocked-border: rgba(248, 113, 113, 0.28);
 
-  --modal-backdrop: rgba(0, 0, 0, 0.75);
-  --drawer-bg: #151922;
-  --ai-box-bg: #181D28;
-  --ai-box-border: rgba(99, 102, 241, 0.3);
+  --modal-backdrop: rgba(0, 0, 0, 0.72);
+  --drawer-bg: #19120E;
+  --ai-box-bg: rgba(217, 119, 6, 0.08);
+  --ai-box-border: rgba(217, 119, 6, 0.25);
 }
 
 /* Base resets */
