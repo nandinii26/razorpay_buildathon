@@ -621,8 +621,9 @@ function App() {
                   <tr 
                     key={c.id} 
                     onClick={() => setSelectedCase(c)}
-                    style={{ backgroundColor: selectedCase && selectedCase.id === c.id ? 'rgba(255, 255, 255, 0.04)' : '' }}
+                    style={{ backgroundColor: selectedCase && selectedCase.id === c.id ? 'var(--bg-secondary)' : '' }}
                   >
+
                     <td>
                       <div class="customer-info">
                         <span class="customer-name">{c.customer.name}</span>
