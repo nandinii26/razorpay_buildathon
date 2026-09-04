@@ -19,12 +19,42 @@ import {
 } from 'lucide-react';
 
 const ACTION_DISPLAY_MAP = {
-  RETRY_PAYMENT: { label: "Retry Payment", description: "Schedule a retry attempt for this payment.", color: "#b45309" },
-  SEND_PAYMENT_LINK: { label: "Send Payment Link", description: "Send a secure payment link to update credentials.", color: "#d97706" },
-  SEND_REMINDER: { label: "Send Reminder", description: "Send a reminder email/SMS about abandonment.", color: "#c2410c" },
-  RETRY_SUBSCRIPTION: { label: "Retry Subscription", description: "Attempt subscription charge again.", color: "#166534" },
-  ESCALATE_TO_HUMAN: { label: "Escalate to Human", description: "Flag this case for manual review by an account manager.", color: "#991b1b" },
-  STOP: { label: "Stop Recovery", description: "Stop all outreach and recovery efforts for this case.", color: "#786153" },
+  RETRY_PAYMENT: { 
+    label: "Retry Payment", 
+    icon: "🔄",
+    description: "Attempt background payment retry using optimal timing and gateway routing.", 
+    color: "#b45309" 
+  },
+  SEND_PAYMENT_LINK: { 
+    label: "Send Payment Link", 
+    icon: "💳",
+    description: "Ask the customer to complete payment using a secure, dynamic payment link.", 
+    color: "#d97706" 
+  },
+  SEND_REMINDER: { 
+    label: "Send Reminder", 
+    icon: "📩",
+    description: "Send a friendly reminder with direct checkout resumption to recover dropped order.", 
+    color: "#c2410c" 
+  },
+  RETRY_SUBSCRIPTION: { 
+    label: "Retry Subscription", 
+    icon: "🔄",
+    description: "Attempt recurring subscription charge again to resume billing cycle.", 
+    color: "#166534" 
+  },
+  ESCALATE_TO_HUMAN: { 
+    label: "Escalate to Human", 
+    icon: "👤",
+    description: "Flag case for white-glove manual review and outreach by an account manager.", 
+    color: "#991b1b" 
+  },
+  STOP: { 
+    label: "Stop Recovery", 
+    icon: "🛑",
+    description: "Halt all outreach and retries to prevent customer fatigue and respect boundaries.", 
+    color: "#786153" 
+  },
 };
 
 function App() {
@@ -751,174 +781,254 @@ function App() {
               </div>
             </div>
 
-            {/* Section 3: AI Diagnosis */}
-            <div class="drawer-section">
-              <h3>AI Copilot Diagnosis</h3>
-              <div class="ai-box">
-                <div class="ai-header-row">
-                  <span class="ai-title">
-                    <Brain size={18} />
-                    Gemini Intelligence
+            {/* Section 3: AI Recovery Analysis */}
+            <div className="drawer-section">
+              <div className="ai-box" style={{ 
+                background: 'var(--bg-card)', 
+                border: '1px solid var(--border-color)', 
+                borderRadius: '16px', 
+                padding: '1.5rem',
+                boxShadow: 'var(--card-shadow)'
+              }}>
+                {/* 1. Header: AI Recovery Analysis + Confidence Badge */}
+                <div className="ai-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <span style={{ 
+                    fontSize: '0.92rem', 
+                    fontWeight: 800, 
+                    letterSpacing: '0.04em', 
+                    color: 'var(--text-primary)',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem' 
+                  }}>
+                    🧠 AI RECOVERY ANALYSIS
                   </span>
                   {selectedCase.diagnosis ? (
-                    <span className={`ai-confidence ${selectedCase.confidence < 0.85 ? 'low' : ''}`}>
-                      {Math.round(selectedCase.confidence * 100)}% Confidence
+                    <span style={{ 
+                      fontSize: '0.8rem', 
+                      fontWeight: 800, 
+                      letterSpacing: '0.04em',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--accent-primary)',
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      {Math.round(selectedCase.confidence * 100)}% CONFIDENCE
                     </span>
                   ) : (
-                    <span class="ai-confidence low">Undiagnosed</span>
+                    <span className="ai-confidence low">UNDIAGNOSED</span>
                   )}
                 </div>
 
                 {selectedCase.diagnosis ? (
                   <>
-                    {selectedCase.policy_status && (
-                      <div className={`policy-banner policy-${selectedCase.policy_status.toLowerCase()}`} style={{
-                        padding: '0.8rem 1rem',
-                        borderRadius: '8px',
-                        marginBottom: '1rem',
-                        fontSize: '0.85rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.25rem',
-                        backgroundColor: selectedCase.policy_status === 'APPROVED' ? 'rgba(16, 185, 129, 0.08)' :
-                                         (selectedCase.policy_status === 'BLOCKED' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)'),
-                        borderLeft: `4px solid ${
-                          selectedCase.policy_status === 'APPROVED' ? 'var(--accent-success)' :
-                          (selectedCase.policy_status === 'BLOCKED' ? 'var(--accent-danger)' : 'var(--accent-warning)')
-                        }`,
-                        border: '1px solid rgba(255,255,255,0.04)',
-                        borderLeftWidth: '4px'
+                    {/* 2. Diagnosis */}
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ 
+                        fontSize: '0.75rem', 
+                        fontWeight: 700, 
+                        color: 'var(--text-muted)', 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.06em', 
+                        marginBottom: '0.45rem' 
                       }}>
-                        <div style={{ 
+                        Diagnosis
+                      </div>
+                      <p style={{ 
+                        fontSize: '0.95rem', 
+                        fontWeight: 600, 
+                        color: 'var(--text-primary)', 
+                        lineHeight: 1.55 
+                      }}>
+                        {selectedCase.diagnosis}
+                      </p>
+                    </div>
+
+                    {/* Divider */}
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1.25rem 0' }} />
+
+                    {/* 3. Recommended Action */}
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ 
+                        fontSize: '0.75rem', 
+                        fontWeight: 700, 
+                        color: 'var(--text-muted)', 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.06em', 
+                        marginBottom: '0.6rem' 
+                      }}>
+                        RECOMMENDED ACTION
+                      </div>
+                      <div style={{ 
+                        fontSize: '1.15rem', 
+                        fontWeight: 800, 
+                        color: ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.color || 'var(--accent-primary)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.5rem', 
+                        marginBottom: '0.35rem' 
+                      }}>
+                        <span>{ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.icon || '⚡'}</span>
+                        <span>{ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.label || selectedCase.recommended_action}</span>
+                      </div>
+                      <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5, fontWeight: 500 }}>
+                        {ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.description || 'Execute automated recovery outreach for this case.'}
+                      </p>
+                    </div>
+
+                    {/* Divider */}
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1.25rem 0' }} />
+
+                    {/* 4. Policy Check Checklist */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 700, 
+                          color: 'var(--text-muted)', 
+                          textTransform: 'uppercase', 
+                          letterSpacing: '0.06em', 
                           display: 'flex', 
                           alignItems: 'center', 
-                          gap: '0.5rem', 
-                          fontWeight: 700, 
-                          textTransform: 'uppercase', 
-                          fontSize: '0.75rem',
-                          color: selectedCase.policy_status === 'APPROVED' ? '#34d399' :
-                                 (selectedCase.policy_status === 'BLOCKED' ? '#f87171' : '#fbbf24')
+                          gap: '0.4rem' 
                         }}>
-                          <ShieldAlert size={14} />
-                          Policy Engine Check: {selectedCase.policy_status}
-                        </div>
-                        <div style={{ color: 'var(--text-secondary)', fontWeight: 500, lineHeight: 1.4 }}>
-                          {selectedCase.policy_reason}
-                        </div>
-                      </div>
-                    )}
-
-                    <p class="ai-diagnosis-text">{selectedCase.diagnosis}</p>
-                    
-                    <div class="ai-action-box" style={{ 
-                      borderLeft: `4px solid ${ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.color || 'var(--accent-purple)'}`,
-                      backgroundColor: 'rgba(15, 23, 42, 0.4)',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '0 8px 8px 0',
-                      marginBottom: '1rem'
-                    }}>
-                      <div class="ai-action-title" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Recommended Playbook Action</div>
-                      <div class="ai-action-text" style={{ 
-                        color: 'var(--text-primary)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.25rem'
-                      }}>
-                        <span style={{ 
-                          fontWeight: 700, 
-                          fontSize: '1rem',
-                          color: ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.color || 'var(--text-primary)'
-                        }}>
-                          {ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.label || selectedCase.recommended_action}
+                          🛡 POLICY CHECK
                         </span>
-                        {ACTION_DISPLAY_MAP[selectedCase.recommended_action] && (
-                          <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                            {ACTION_DISPLAY_MAP[selectedCase.recommended_action].description}
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          padding: '0.15rem 0.55rem',
+                          borderRadius: '6px',
+                          letterSpacing: '0.04em',
+                          backgroundColor: selectedCase.policy_status === 'APPROVED' ? 'var(--badge-recovered-bg)' :
+                                           (selectedCase.policy_status === 'BLOCKED' ? 'var(--badge-open-bg)' : 'var(--badge-checkout-bg)'),
+                          color: selectedCase.policy_status === 'APPROVED' ? 'var(--badge-recovered-text)' :
+                                 (selectedCase.policy_status === 'BLOCKED' ? 'var(--badge-open-text)' : 'var(--badge-checkout-text)'),
+                          border: `1px solid ${
+                            selectedCase.policy_status === 'APPROVED' ? 'var(--badge-recovered-border)' :
+                            (selectedCase.policy_status === 'BLOCKED' ? 'var(--badge-open-border)' : 'var(--badge-checkout-border)')
+                          }`
+                        }}>
+                          {selectedCase.policy_status}
+                        </span>
+                      </div>
+
+                      {/* Checklist items */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.88rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <span style={{ 
+                            color: selectedCase.policy_status === 'BLOCKED' ? 'var(--accent-danger)' : 'var(--accent-success)', 
+                            fontWeight: 800, 
+                            fontSize: '1rem' 
+                          }}>
+                            {selectedCase.policy_status === 'BLOCKED' ? '✕' : '✓'}
                           </span>
-                        )}
+                          <span style={{ color: selectedCase.policy_status === 'BLOCKED' ? 'var(--accent-danger)' : 'var(--text-primary)', fontWeight: 500 }}>
+                            {selectedCase.policy_status === 'BLOCKED' ? 'Customer opted out of communications' : 'Automated recovery allowed'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <span style={{ 
+                            color: selectedCase.policy_reason?.toLowerCase().includes('retry limit') ? 'var(--accent-danger)' : 'var(--accent-success)', 
+                            fontWeight: 800, 
+                            fontSize: '1rem' 
+                          }}>
+                            {selectedCase.policy_reason?.toLowerCase().includes('retry limit') ? '✕' : '✓'}
+                          </span>
+                          <span style={{ color: selectedCase.policy_reason?.toLowerCase().includes('retry limit') ? 'var(--accent-warning)' : 'var(--text-primary)', fontWeight: 500 }}>
+                            {selectedCase.policy_reason?.toLowerCase().includes('retry limit') ? 'Retry limit exceeded (3/3 attempts)' : 'Retry limit not exceeded'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <span style={{ 
+                            color: parseFloat(selectedCase.amount) > 500 ? 'var(--accent-warning)' : 'var(--accent-success)', 
+                            fontWeight: 800, 
+                            fontSize: '1rem' 
+                          }}>
+                            {parseFloat(selectedCase.amount) > 500 ? '⚠' : '✓'}
+                          </span>
+                          <span style={{ color: parseFloat(selectedCase.amount) > 500 ? 'var(--accent-warning)' : 'var(--text-primary)', fontWeight: 500 }}>
+                            {parseFloat(selectedCase.amount) > 500 ? `Amount exceeds auto-recovery threshold (> $500.00)` : 'Amount within auto-recovery limit'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    
-                    {selectedCase.reasoning && (
-                      <div class="ai-reasoning-box">
-                        <strong>Technical Reasoning</strong>
-                        {selectedCase.reasoning}
+
+                    {/* 5. Execute Action Button */}
+                    {selectedCase.status === 'open' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%', marginTop: '0.5rem' }}>
+                        <button 
+                          className="btn" 
+                          disabled={selectedCase.policy_status === 'BLOCKED'}
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.85rem', 
+                            fontSize: '0.92rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.02em',
+                            justifyContent: 'center',
+                            backgroundColor: selectedCase.policy_status === 'BLOCKED' ? 'var(--bg-input)' :
+                                            (selectedCase.policy_status === 'NEEDS_HUMAN' ? 'var(--accent-warning)' :
+                                            (ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.color || 'var(--accent-primary)')),
+                            cursor: selectedCase.policy_status === 'BLOCKED' ? 'not-allowed' : 'pointer',
+                            border: selectedCase.policy_status === 'BLOCKED' ? '1px solid var(--border-color)' : 'none',
+                            color: selectedCase.policy_status === 'BLOCKED' ? 'var(--text-muted)' : '#ffffff',
+                            boxShadow: selectedCase.policy_status === 'BLOCKED' ? 'none' : 'var(--btn-shadow)'
+                          }}
+                          onClick={() => executePlaybook(selectedCase.id)}
+                        >
+                          {selectedCase.policy_status === 'BLOCKED' ? (
+                            'OUTREACH SUPPRESSED'
+                          ) : selectedCase.policy_status === 'NEEDS_HUMAN' ? (
+                            <>
+                              <span>👤 ESCALATE TO HUMAN</span>
+                              <ArrowRight size={16} />
+                            </>
+                          ) : (
+                            <>
+                              <span>⚡ EXECUTE RECOVERY</span>
+                              <ArrowRight size={16} />
+                            </>
+                          )}
+                        </button>
+
+                        {/* Simulated Failure Demo Button */}
+                        {selectedCase.policy_status === 'APPROVED' && 
+                         (selectedCase.recommended_action === 'RETRY_PAYMENT' || selectedCase.recommended_action === 'RETRY_SUBSCRIPTION') && (
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ 
+                              width: '100%', 
+                              padding: '0.65rem', 
+                              justifyContent: 'center',
+                              borderColor: 'var(--border-color)',
+                              color: 'var(--accent-danger)',
+                              boxShadow: 'none',
+                              backgroundColor: 'transparent',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              fontSize: '0.82rem'
+                            }}
+                            onClick={() => executePlaybook(selectedCase.id, true)}
+                          >
+                            Simulate Playbook Failure (Demo)
+                          </button>
+                        )}
                       </div>
                     )}
                   </>
                 ) : (
-                  <p class="ai-diagnosis-text" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', padding: '1rem 0' }}>
                     No diagnosis available. Run the detector to scan and diagnose this case.
                   </p>
                 )}
               </div>
             </div>
-            
-            {/* Quick Action */}
-            {selectedCase.status === 'open' && selectedCase.diagnosis && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', marginBottom: '0.5rem' }}>
-                <button 
-                  class="btn" 
-                  disabled={selectedCase.policy_status === 'BLOCKED'}
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.8rem', 
-                    justifyContent: 'center',
-                    backgroundColor: selectedCase.policy_status === 'BLOCKED' ? '#1e293b' :
-                                    (selectedCase.policy_status === 'NEEDS_HUMAN' ? 'var(--accent-warning)' :
-                                    (ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.color || 'var(--accent-primary)')),
-                    boxShadow: selectedCase.policy_status === 'BLOCKED' ? 'none' : 
-                              `0 4px 12px ${
-                                selectedCase.policy_status === 'NEEDS_HUMAN' ? 'var(--accent-warning)' :
-                                (ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.color || 'var(--accent-primary)')
-                              }33`,
-                    cursor: selectedCase.policy_status === 'BLOCKED' ? 'not-allowed' : 'pointer',
-                    border: selectedCase.policy_status === 'BLOCKED' ? '1px solid var(--border-color)' : 'none',
-                    color: selectedCase.policy_status === 'BLOCKED' ? 'var(--text-secondary)' : 'white'
-                  }}
-                  onClick={() => executePlaybook(selectedCase.id)}
-                >
-                  {selectedCase.policy_status === 'BLOCKED' ? (
-                    <>
-                      Automated Outreach Suppressed
-                    </>
-                  ) : selectedCase.policy_status === 'NEEDS_HUMAN' ? (
-                    <>
-                      Escalate & Assign to Manager
-                      <ArrowRight size={16} />
-                    </>
-                  ) : (
-                    <>
-                      Trigger Playbook: {ACTION_DISPLAY_MAP[selectedCase.recommended_action]?.label || selectedCase.recommended_action}
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
 
-                {/* Simulated Failure Demo Button - Only for retry payment/subscription when approved */}
-                {selectedCase.policy_status === 'APPROVED' && 
-                 (selectedCase.recommended_action === 'RETRY_PAYMENT' || selectedCase.recommended_action === 'RETRY_SUBSCRIPTION') && (
-                  <button 
-                    class="btn btn-secondary" 
-                    style={{ 
-                      width: '100%', 
-                      padding: '0.8rem', 
-                      justifyContent: 'center',
-                      borderColor: 'var(--accent-danger)',
-                      color: '#fca5a5',
-                      boxShadow: 'none',
-                      backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
-                    onClick={() => executePlaybook(selectedCase.id, true)}
-                  >
-                    Simulate Playbook Failure (Demo)
-                  </button>
-                )}
-              </div>
-            )}
 
             {/* Section 4: Audit Trail */}
             <div class="drawer-section" style={{ marginTop: '1.5rem' }}>
