@@ -12,19 +12,23 @@ import {
   ArrowRight,
   TrendingUp,
   User,
-  DollarSign
+  DollarSign,
+  Sun,
+  Moon,
+  Coffee
 } from 'lucide-react';
 
 const ACTION_DISPLAY_MAP = {
-  RETRY_PAYMENT: { label: "Retry Payment", description: "Schedule a retry attempt for this payment.", color: "#3b82f6" },
-  SEND_PAYMENT_LINK: { label: "Send Payment Link", description: "Send a secure payment link to update credentials.", color: "#f59e0b" },
-  SEND_REMINDER: { label: "Send Reminder", description: "Send a reminder email/SMS about abandonment.", color: "#8b5cf6" },
-  RETRY_SUBSCRIPTION: { label: "Retry Subscription", description: "Attempt subscription charge again.", color: "#10b981" },
-  ESCALATE_TO_HUMAN: { label: "Escalate to Human", description: "Flag this case for manual review by an account manager.", color: "#ef4444" },
-  STOP: { label: "Stop Recovery", description: "Stop all outreach and recovery efforts for this case.", color: "#94a3b8" },
+  RETRY_PAYMENT: { label: "Retry Payment", description: "Schedule a retry attempt for this payment.", color: "#b45309" },
+  SEND_PAYMENT_LINK: { label: "Send Payment Link", description: "Send a secure payment link to update credentials.", color: "#d97706" },
+  SEND_REMINDER: { label: "Send Reminder", description: "Send a reminder email/SMS about abandonment.", color: "#c2410c" },
+  RETRY_SUBSCRIPTION: { label: "Retry Subscription", description: "Attempt subscription charge again.", color: "#166534" },
+  ESCALATE_TO_HUMAN: { label: "Escalate to Human", description: "Flag this case for manual review by an account manager.", color: "#991b1b" },
+  STOP: { label: "Stop Recovery", description: "Stop all outreach and recovery efforts for this case.", color: "#786153" },
 };
 
 function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'light');
   const [stats, setStats] = useState({
     total_revenue: 0,
     recovered_revenue: 0,
@@ -42,6 +46,13 @@ function App() {
     failed_to_recover_cases_count: 0,
     breakdown_by_risk_type: {}
   });
+
+  // Apply theme to document element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('app-theme', theme);
+  }, [theme]);
+
   const [cases, setCases] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -182,15 +193,34 @@ function App() {
   };
 
   return (
-    <div class="container">
+    <div className="container">
       <header>
-        <div class="logo-section">
+        <div className="logo-section">
           <h1>AI Revenue Recovery Dashboard</h1>
-          <p>Phase 3 - Real-time Risk Detection & AI Diagnosis</p>
+          <p>Real-time Risk Detection, ML Diagnostics & Recovery Playbooks</p>
         </div>
-        <div class="actions-section">
+        <div className="actions-section">
+          {/* Theme Switcher */}
           <button 
-            class="btn btn-secondary" 
+            className="theme-toggle-btn"
+            onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+            title={`Switch to ${theme === 'light' ? 'Mocha Dark' : 'Warm Cream'} Theme`}
+          >
+            {theme === 'light' ? (
+              <>
+                <Moon size={16} style={{ color: '#b45309' }} />
+                <span>☕ Mocha Dark</span>
+              </>
+            ) : (
+              <>
+                <Sun size={16} style={{ color: '#f59e0b' }} />
+                <span>☀️ Warm Cream</span>
+              </>
+            )}
+          </button>
+
+          <button 
+            className="btn btn-secondary" 
             onClick={simulateFailedPayment}
             disabled={simulating || detecting}
           >
@@ -198,7 +228,7 @@ function App() {
             {simulating ? 'Simulating...' : 'Simulate Failure'}
           </button>
           <button 
-            class="btn" 
+            className="btn" 
             onClick={runRiskDetector}
             disabled={simulating || detecting}
           >
@@ -207,6 +237,7 @@ function App() {
           </button>
         </div>
       </header>
+
 
       {/* Stats Cards Section */}
       <section class="stats-grid">
@@ -387,91 +418,92 @@ function App() {
               Value Distribution
             </span>
           </h3>
-          <div class="breakdown-list" style={{ gap: '1.25rem' }}>
+          <div className="breakdown-list" style={{ gap: '1.25rem' }}>
             {/* Payment Failure */}
-            <div class="breakdown-item">
-              <div class="breakdown-row">
-                <span class="breakdown-label" style={{ color: '#93c5fd' }}>💳 Payment Failure</span>
-                <div class="breakdown-value-container">
-                  <span class="breakdown-count-badge">
+            <div className="breakdown-item">
+              <div className="breakdown-row">
+                <span className="breakdown-label" style={{ color: 'var(--accent-primary)' }}>💳 Payment Failure</span>
+                <div className="breakdown-value-container">
+                  <span className="breakdown-count-badge">
                     {stats.breakdown_by_risk_type?.payment_failure?.count || 0}
                   </span>
-                  <span class="breakdown-amount">
+                  <span className="breakdown-amount">
                     {formatCurrency(stats.breakdown_by_risk_type?.payment_failure?.amount || 0)}
                   </span>
                 </div>
               </div>
-              <div class="breakdown-progress-bar-container">
+              <div className="breakdown-progress-bar-container">
                 <div 
-                  class="breakdown-progress-bar" 
+                  className="breakdown-progress-bar" 
                   style={{ 
                     width: `${
                       (stats.revenue_at_risk + stats.recovered_revenue) > 0 
                         ? ((stats.breakdown_by_risk_type?.payment_failure?.amount || 0) / (stats.revenue_at_risk + stats.recovered_revenue) * 100)
                         : 0
                     }%`,
-                    backgroundColor: '#3b82f6'
+                    backgroundColor: 'var(--accent-primary)'
                   }}
                 ></div>
               </div>
             </div>
 
             {/* Subscription Renewal Failure */}
-            <div class="breakdown-item">
-              <div class="breakdown-row">
-                <span class="breakdown-label" style={{ color: '#c084fc' }}>🔄 Subscription Renewal</span>
-                <div class="breakdown-value-container">
-                  <span class="breakdown-count-badge">
+            <div className="breakdown-item">
+              <div className="breakdown-row">
+                <span className="breakdown-label" style={{ color: 'var(--accent-gold)' }}>🔄 Subscription Renewal</span>
+                <div className="breakdown-value-container">
+                  <span className="breakdown-count-badge">
                     {stats.breakdown_by_risk_type?.subscription_renewal_failure?.count || 0}
                   </span>
-                  <span class="breakdown-amount">
+                  <span className="breakdown-amount">
                     {formatCurrency(stats.breakdown_by_risk_type?.subscription_renewal_failure?.amount || 0)}
                   </span>
                 </div>
               </div>
-              <div class="breakdown-progress-bar-container">
+              <div className="breakdown-progress-bar-container">
                 <div 
-                  class="breakdown-progress-bar" 
+                  className="breakdown-progress-bar" 
                   style={{ 
                     width: `${
                       (stats.revenue_at_risk + stats.recovered_revenue) > 0 
                         ? ((stats.breakdown_by_risk_type?.subscription_renewal_failure?.amount || 0) / (stats.revenue_at_risk + stats.recovered_revenue) * 100)
                         : 0
                     }%`,
-                    backgroundColor: '#8b5cf6'
+                    backgroundColor: 'var(--accent-gold)'
                   }}
                 ></div>
               </div>
             </div>
 
             {/* Checkout Abandoned */}
-            <div class="breakdown-item">
-              <div class="breakdown-row">
-                <span class="breakdown-label" style={{ color: '#fcd34d' }}>🛒 Checkout Abandoned</span>
-                <div class="breakdown-value-container">
-                  <span class="breakdown-count-badge">
+            <div className="breakdown-item">
+              <div className="breakdown-row">
+                <span className="breakdown-label" style={{ color: 'var(--accent-warning)' }}>🛒 Checkout Abandoned</span>
+                <div className="breakdown-value-container">
+                  <span className="breakdown-count-badge">
                     {stats.breakdown_by_risk_type?.checkout_abandoned?.count || 0}
                   </span>
-                  <span class="breakdown-amount">
+                  <span className="breakdown-amount">
                     {formatCurrency(stats.breakdown_by_risk_type?.checkout_abandoned?.amount || 0)}
                   </span>
                 </div>
               </div>
-              <div class="breakdown-progress-bar-container">
+              <div className="breakdown-progress-bar-container">
                 <div 
-                  class="breakdown-progress-bar" 
+                  className="breakdown-progress-bar" 
                   style={{ 
                     width: `${
                       (stats.revenue_at_risk + stats.recovered_revenue) > 0 
                         ? ((stats.breakdown_by_risk_type?.checkout_abandoned?.amount || 0) / (stats.revenue_at_risk + stats.recovered_revenue) * 100)
                         : 0
                     }%`,
-                    backgroundColor: '#f59e0b'
+                    backgroundColor: 'var(--accent-warning)'
                   }}
                 ></div>
               </div>
             </div>
           </div>
+
         </div>
       </section>
 
