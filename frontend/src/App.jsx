@@ -23,37 +23,37 @@ const ACTION_DISPLAY_MAP = {
     label: "Retry Payment", 
     icon: "🔄",
     description: "Attempt background payment retry using optimal timing and gateway routing.", 
-    color: "#b45309" 
+    color: "#2563EB" 
   },
   SEND_PAYMENT_LINK: { 
     label: "Send Payment Link", 
     icon: "💳",
     description: "Ask the customer to complete payment using a secure, dynamic payment link.", 
-    color: "#d97706" 
+    color: "#2563EB" 
   },
   SEND_REMINDER: { 
     label: "Send Reminder", 
     icon: "📩",
     description: "Send a friendly reminder with direct checkout resumption to recover dropped order.", 
-    color: "#c2410c" 
+    color: "#2563EB" 
   },
   RETRY_SUBSCRIPTION: { 
     label: "Retry Subscription", 
     icon: "🔄",
     description: "Attempt recurring subscription charge again to resume billing cycle.", 
-    color: "#166534" 
+    color: "#2563EB" 
   },
   ESCALATE_TO_HUMAN: { 
     label: "Escalate to Human", 
     icon: "👤",
     description: "Flag case for white-glove manual review and outreach by an account manager.", 
-    color: "#991b1b" 
+    color: "#F59E0B" 
   },
   STOP: { 
     label: "Stop Recovery", 
     icon: "🛑",
     description: "Halt all outreach and retries to prevent customer fatigue and respect boundaries.", 
-    color: "#786153" 
+    color: "#DC2626" 
   },
 };
 
@@ -272,14 +272,15 @@ function App() {
       {/* Stats Cards Section */}
       <section class="stats-grid">
         {/* Revenue At Risk */}
-        <div class="stat-card risk">
-          <span class="stat-label">Revenue At Risk</span>
-          <span class="stat-value">{formatCurrency(stats.revenue_at_risk)}</span>
-          <span class="stat-meta">
-            <AlertTriangle size={16} style={{ color: 'var(--accent-danger)' }} />
+        <div className="stat-card risk">
+          <span className="stat-label">Revenue At Risk</span>
+          <span className="stat-value">{formatCurrency(stats.revenue_at_risk)}</span>
+          <span className="stat-meta">
+            <AlertTriangle size={16} style={{ color: 'var(--accent-warning)' }} />
             Money in recovery funnel
           </span>
         </div>
+
 
         {/* Revenue Recovered */}
         <div class="stat-card recovered">
@@ -480,7 +481,7 @@ function App() {
             {/* Subscription Renewal Failure */}
             <div className="breakdown-item">
               <div className="breakdown-row">
-                <span className="breakdown-label" style={{ color: 'var(--accent-gold)' }}>🔄 Subscription Renewal</span>
+                <span className="breakdown-label" style={{ color: 'var(--accent-ai)' }}>🔄 Subscription Renewal</span>
                 <div className="breakdown-value-container">
                   <span className="breakdown-count-badge">
                     {stats.breakdown_by_risk_type?.subscription_renewal_failure?.count || 0}
@@ -499,7 +500,7 @@ function App() {
                         ? ((stats.breakdown_by_risk_type?.subscription_renewal_failure?.amount || 0) / (stats.revenue_at_risk + stats.recovered_revenue) * 100)
                         : 0
                     }%`,
-                    backgroundColor: 'var(--accent-gold)'
+                    backgroundColor: 'var(--accent-ai)'
                   }}
                 ></div>
               </div>
@@ -1031,15 +1032,15 @@ function App() {
 
 
             {/* Section 4: Audit Trail */}
-            <div class="drawer-section" style={{ marginTop: '1.5rem' }}>
+            <div className="drawer-section" style={{ marginTop: '1.5rem' }}>
               <h3>Audit Trail Log</h3>
-              <div class="timeline" style={{
+              <div className="timeline" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1rem',
                 position: 'relative',
                 paddingLeft: '1.5rem',
-                borderLeft: '2px solid rgba(255, 255, 255, 0.05)',
+                borderLeft: '2px solid var(--border-color)',
                 marginLeft: '0.5rem',
                 marginTop: '0.5rem'
               }}>
@@ -1047,8 +1048,8 @@ function App() {
                   selectedCase.audit_logs.map((log) => {
                     let color = 'var(--text-secondary)';
                     if (log.step === 'detected') color = 'var(--accent-primary)';
-                    if (log.step === 'diagnosed') color = '#c084fc';
-                    if (log.step === 'decided') color = '#38bdf8';
+                    if (log.step === 'diagnosed') color = 'var(--accent-ai)';
+                    if (log.step === 'decided') color = 'var(--accent-primary)';
                     if (log.step === 'policy-checked') {
                       color = log.status === 'blocked' ? 'var(--accent-danger)' :
                               (log.status === 'needs_human' ? 'var(--accent-warning)' : 'var(--accent-success)');
@@ -1057,8 +1058,8 @@ function App() {
                     if (log.step === 'resolved') color = 'var(--accent-success)';
 
                     return (
-                      <div key={log.id} class="timeline-item" style={{ position: 'relative' }}>
-                        <div class="timeline-dot" style={{
+                      <div key={log.id} className="timeline-item" style={{ position: 'relative' }}>
+                        <div className="timeline-dot" style={{
                           position: 'absolute',
                           left: '-2.05rem',
                           top: '0.25rem',
@@ -1066,11 +1067,11 @@ function App() {
                           height: '10px',
                           borderRadius: '50%',
                           backgroundColor: color,
-                          border: '2px solid var(--bg-primary)',
-                          boxShadow: `0 0 8px ${color}`
+                          border: '2px solid var(--bg-card)',
+                          boxShadow: `0 0 0 2px var(--border-color)`
                         }}></div>
                         
-                        <div class="timeline-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                        <div className="timeline-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
                           <span style={{ 
                             fontSize: '0.75rem', 
                             fontWeight: 700, 
@@ -1080,10 +1081,10 @@ function App() {
                           }}>
                             {log.step.replace(/-/g, ' ')}
                           </span>
-                          <span style={{ fontSize: '0.85rem', color: '#f1f5f9', fontWeight: 500, lineHeight: 1.3 }}>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.35 }}>
                             {log.message}
                           </span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                             {new Date(log.created_at).toLocaleString('en-IN', {
                               hour: '2-digit', minute: '2-digit', second: '2-digit',
                               day: '2-digit', month: 'short'
