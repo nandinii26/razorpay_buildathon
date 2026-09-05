@@ -126,6 +126,7 @@ class RecoveryCaseBase(BaseModel):
     reasoning: Optional[str] = None
     policy_status: Optional[str] = None
     policy_reason: Optional[str] = None
+    payment_link: Optional[str] = None  # Razorpay payment link URL
 
 class AuditLogSchema(BaseModel):
     id: UUID

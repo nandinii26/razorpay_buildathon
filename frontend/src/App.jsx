@@ -199,6 +199,16 @@ function App() {
     }
   };
 
+  const truncatePaymentLink = (url) => {
+    if (!url) return '';
+    // Show first part: rzp.io/ and last 7 chars before the ellipsis
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+    const path = urlObj.pathname.substring(1); // Remove leading /
+    const lastChars = path.substring(Math.max(0, path.length - 7));
+    return `${domain}/...${lastChars}`;
+  };
+
   const runRiskDetector = async () => {
     setDetecting(true);
     try {
@@ -1030,6 +1040,82 @@ function App() {
               </div>
             </div>
 
+
+            {/* Section 3.5: Payment Link (if exists) */}
+            {selectedCase.payment_link && (
+              <div className="drawer-section" style={{ marginTop: '1.5rem', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '1rem' }}>💳</span>
+                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>RAZORPAY PAYMENT LINK</h3>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Link</span>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500, fontFamily: 'monospace' }}>
+                    {truncatePaymentLink(selectedCase.payment_link)}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button 
+                    onClick={() => window.open(selectedCase.payment_link, '_blank')}
+                    style={{
+                      flex: 1,
+                      padding: '0.6rem 0.8rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      backgroundColor: 'var(--accent-primary)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.4rem',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = 'var(--accent-primary-hover)'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = 'var(--accent-primary)'}
+                  >
+                    🔗 View Link
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedCase.payment_link);
+                      showToast('Payment link copied to clipboard!', 'success');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.6rem 0.8rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      backgroundColor: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.4rem',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = 'var(--border-color)';
+                      e.target.style.borderColor = 'var(--accent-primary)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = 'var(--bg-card)';
+                      e.target.style.borderColor = 'var(--border-color)';
+                    }}
+                  >
+                    📋 Copy Link
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Section 4: Audit Trail */}
             <div className="drawer-section" style={{ marginTop: '1.5rem' }}>

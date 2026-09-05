@@ -11,9 +11,12 @@ from typing import List, Optional
 from decimal import Decimal
 
 from .config import settings
-from .database import get_db
+from .database import get_db, engine, Base
 from .models import Customer, Order, Payment, Subscription, RecoveryCase, AuditLog
 from .schemas import CustomerSchema, PaymentSchema, PaymentWithCustomer, RecoveryStats, RecoveryCaseWithCustomer
+
+# Auto-create tables in the connected database if they don't already exist
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="AI Revenue Recovery API")
 

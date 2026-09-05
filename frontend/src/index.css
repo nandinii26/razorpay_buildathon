@@ -73,10 +73,10 @@
 
 [data-theme="dark"] {
   /* Rich Roasted Espresso & Mocha Brown Dark Palette */
-  --bg-primary: #140E0B;
-  --bg-secondary: #1C1410;
-  --bg-card: #201712;
-  --bg-card-solid: #201712;
+  --bg-primary: #3e281c;
+  --bg-secondary: #512a17;
+  --bg-card: #35251c;
+  --bg-card-solid: #2f1f17;
   --bg-card-hover: #271D17;
   --bg-input: #19110D;
   --bg-table-header: #1A120E;

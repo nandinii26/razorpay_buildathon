@@ -94,6 +94,7 @@ class RecoveryCase(Base):
     reasoning = Column(String, nullable=True)
     policy_status = Column(String, nullable=True)  # APPROVED, BLOCKED, NEEDS_HUMAN
     policy_reason = Column(String, nullable=True)
+    payment_link = Column(String, nullable=True)  # Razorpay payment link URL
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 

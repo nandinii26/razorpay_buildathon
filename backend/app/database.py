@@ -4,15 +4,24 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from .config import settings
 
 database_url = settings.DATABASE_URL
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
 try:
     if database_url.startswith("postgresql"):
-        # Attempt connection with a short timeout to fail fast if DB is down or credentials fail
-        engine = create_engine(database_url, connect_args={"connect_timeout": 2})
-        # Force a connection test
+        # Connection pooling and ping check for cloud PostgreSQL
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            connect_args={"connect_timeout": 10}
+        )
         with engine.connect() as conn:
             pass
     else:
-        engine = create_engine(database_url)
+        engine = create_engine(
+            database_url,
+            connect_args={"check_same_thread": False} if "sqlite" in database_url else {}
+        )
 except Exception as e:
     print(f"Warning: Database connection failed for {database_url}. Error: {e}")
     print("Falling back to local SQLite database: sqlite:///./revenue_recovery.db")

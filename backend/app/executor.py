@@ -175,9 +175,13 @@ def execute_recovery_action(db: Session, case: RecoveryCase, simulate_failure: b
 
         mode_str = "Live Razorpay Test Mode API" if is_live_api else "Simulated Link"
         comms_message = (
-            f"Razorpay Payment Link generated ({mode_str}): {payment_link} (Link ID: {link_id}). "
-            f"Comms notification dispatched to customer {customer_email}."
+            f"Razorpay Payment Link generated ({mode_str}). "
+            f"Notification dispatched to customer {customer_email}."
         )
+        
+        # Update case with payment link
+        case.payment_link = payment_link
+        db.commit()
         
         comms_log = AuditLog(
             id=uuid.uuid4(),
