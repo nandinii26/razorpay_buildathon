@@ -578,15 +578,18 @@ def run_diagnosis_cycle(db: Session):
         case.policy_status = policy_res["status"]
         case.policy_reason = policy_res["reason"]
         
+        # Format clean action string
+        clean_action_str = case.recommended_action.value if hasattr(case.recommended_action, 'value') else str(case.recommended_action).replace('RecoveryAction.', '')
+
         # Write diagnosis, decided action, and policy check logs
         log_audit_event(db, case.id, "diagnosed", "success", message=f"AI Diagnosis completed: {case.diagnosis} (Confidence: {int(case.confidence*100)}%)")
-        log_audit_event(db, case.id, "decided", "success", action=case.recommended_action, message=f"Recommended recovery action decided: {case.recommended_action}.")
+        log_audit_event(db, case.id, "decided", "success", action=clean_action_str, message=f"Recommended recovery action decided: {clean_action_str}.")
         log_audit_event(
             db, 
             case.id, 
             "policy-checked", 
             "blocked" if case.policy_status == "BLOCKED" else ("needs_human" if case.policy_status == "NEEDS_HUMAN" else "success"), 
-            action=case.recommended_action, 
+            action=clean_action_str, 
             message=f"Policy Safety Engine check: {case.policy_status}. Reason: {case.policy_reason}"
         )
         

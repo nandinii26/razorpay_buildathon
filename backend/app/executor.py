@@ -31,21 +31,21 @@ def execute_recovery_action(db: Session, case: RecoveryCase, simulate_failure: b
             detail=f"Execution blocked by policy safety engine: {case.policy_reason}"
         )
 
-    # 1. Log execution starting
-    exec_log = AuditLog(
-        id=uuid.uuid4(),
-        case_id=case.id,
-        step="executed",
-        status="failed" if simulate_failure else "success",
-        action=case.recommended_action,
-        message=f"Triggered recovery playbook outreach action: {case.recommended_action}."
-    )
-    db.add(exec_log)
-
+    # 1. Log action triggered
     action = case.recommended_action
     customer = case.customer
     customer_name = customer.name if customer else "Customer"
     customer_email = customer.email if customer else "unknown@email.com"
+
+    exec_log = AuditLog(
+        id=uuid.uuid4(),
+        case_id=case.id,
+        step="action_triggered",
+        status="failed" if simulate_failure else "success",
+        action=action,
+        message=f"Recovery playbook started: outreach workflow initiated for {action}."
+    )
+    db.add(exec_log)
 
     rzp_client = get_razorpay_client()
 
@@ -80,7 +80,7 @@ def execute_recovery_action(db: Session, case: RecoveryCase, simulate_failure: b
             fail_log = AuditLog(
                 id=uuid.uuid4(),
                 case_id=case.id,
-                step="executed",
+                step="retry_failed",
                 status="failed",
                 action=action,
                 message=f"Razorpay payment retry attempt failed (Simulated). Retry count: {payment.retry_count} of 3."
@@ -174,24 +174,32 @@ def execute_recovery_action(db: Session, case: RecoveryCase, simulate_failure: b
             payment_link = f"https://rzp.io/i/{link_id}"
 
         mode_str = "Live Razorpay Test Mode API" if is_live_api else "Simulated Link"
-        comms_message = (
-            f"Razorpay Payment Link generated ({mode_str}). "
-            f"Notification dispatched to customer {customer_email}."
-        )
         
         # Update case with payment link
         case.payment_link = payment_link
         db.commit()
         
-        comms_log = AuditLog(
+        # 1. Log Payment Link Created
+        plink_log = AuditLog(
             id=uuid.uuid4(),
             case_id=case.id,
-            step="executed",
+            step="payment_link_created",
             status="success",
             action=action,
-            message=comms_message
+            message=f"Razorpay Payment Link generated ({mode_str}): {payment_link}"
         )
-        db.add(comms_log)
+        db.add(plink_log)
+
+        # 2. Log Customer Notification Dispatched
+        notif_log = AuditLog(
+            id=uuid.uuid4(),
+            case_id=case.id,
+            step="customer_notified",
+            status="success",
+            action=action,
+            message=f"Payment link email and SMS notification dispatched to customer {customer_email}."
+        )
+        db.add(notif_log)
         db.commit()
 
         return {
@@ -204,18 +212,13 @@ def execute_recovery_action(db: Session, case: RecoveryCase, simulate_failure: b
         }
 
     elif action == RecoveryAction.SEND_REMINDER:
-        comms_message = (
-            f"Checkout abandonment reminder outreach (including a 10% discount incentive) "
-            f"delivered to {customer_email}, and SMS notification dispatched."
-        )
-        
         reminder_log = AuditLog(
             id=uuid.uuid4(),
             case_id=case.id,
-            step="executed",
+            step="customer_notified",
             status="success",
             action=action,
-            message=comms_message
+            message=f"Checkout abandonment reminder outreach (with 10% discount) delivered to {customer_email} via Email & SMS."
         )
         db.add(reminder_log)
         db.commit()
@@ -227,17 +230,13 @@ def execute_recovery_action(db: Session, case: RecoveryCase, simulate_failure: b
         }
 
     elif action == RecoveryAction.ESCALATE_TO_HUMAN:
-        escalation_message = (
-            f"Case successfully flagged and assigned to account manager for high-touch manual outreach."
-        )
-        
         escalate_log = AuditLog(
             id=uuid.uuid4(),
             case_id=case.id,
-            step="executed",
-            status="success",
+            step="human_escalated",
+            status="needs_human",
             action=action,
-            message=escalation_message
+            message="Case flagged and assigned to account manager for high-touch manual outreach."
         )
         db.add(escalate_log)
         db.commit()
@@ -258,7 +257,7 @@ def execute_recovery_action(db: Session, case: RecoveryCase, simulate_failure: b
             step="resolved",
             status="failed",
             action=action,
-            message="Recovery efforts halted. Case closed as failed to recover."
+            message="Recovery efforts halted. Case closed as unrecoverable."
         )
         db.add(stop_log)
         db.commit()

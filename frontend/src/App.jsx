@@ -91,7 +91,7 @@ function App() {
   const [simulating, setSimulating] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success', link: null });
 
   // Load stats and cases on mount
   useEffect(() => {
@@ -107,11 +107,11 @@ function App() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, typeFilter, statusFilter]);
 
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
+  const showToast = (message, type = 'success', link = null) => {
+    setToast({ show: true, message, type, link });
     setTimeout(() => {
       setToast(prev => ({ ...prev, show: false }));
-    }, 4000);
+    }, link ? 8000 : 4000);
   };
 
   const loadDashboardData = async () => {
@@ -168,10 +168,19 @@ function App() {
       if (data.status === 'failure') {
         showToast(data.message, 'danger');
       } else {
-        const msg = data.payment_link 
-          ? `Playbook executed! Razorpay Link: ${data.payment_link}` 
-          : (data.message || 'Playbook outreach triggered successfully!');
-        showToast(msg, 'success');
+        const link = data.payment_link;
+        if (link) {
+          if (selectedCase && selectedCase.id === caseId) {
+            setSelectedCase(prev => ({
+              ...prev,
+              payment_link: link,
+              status: 'open'
+            }));
+          }
+          showToast(`Playbook executed! Razorpay link generated`, 'success', link);
+        } else {
+          showToast(data.message || 'Playbook outreach triggered successfully!', 'success');
+        }
       }
       await loadDashboardData();
     } catch (error) {
@@ -199,14 +208,79 @@ function App() {
     }
   };
 
+  const maskEmail = (email) => {
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return email || 'c*****@example.org';
+    }
+    const [user, domain] = email.split('@');
+    if (user.length === 0) return `*****@${domain}`;
+    return `${user.charAt(0)}*****@${domain}`;
+  };
+
   const truncatePaymentLink = (url) => {
-    if (!url) return '';
-    // Show first part: rzp.io/ and last 7 chars before the ellipsis
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname;
-    const path = urlObj.pathname.substring(1); // Remove leading /
-    const lastChars = path.substring(Math.max(0, path.length - 7));
-    return `${domain}/...${lastChars}`;
+    if (!url) return 'rzp.io/...';
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      const path = urlObj.pathname.replace(/^\/+/, '');
+      const segments = path.split('/');
+      const lastSegment = segments[segments.length - 1] || path;
+      const lastChars = lastSegment.length > 7 ? lastSegment.substring(lastSegment.length - 7) : lastSegment;
+      return `${domain}/...${lastChars}`;
+    } catch {
+      const cleaned = url.replace(/^https?:\/\//, '');
+      const lastChars = cleaned.length > 7 ? cleaned.substring(cleaned.length - 7) : cleaned;
+      return `rzp.io/...${lastChars}`;
+    }
+  };
+
+  const sanitizeLogMessage = (msg) => {
+    if (!msg || typeof msg !== 'string') return msg;
+    return msg.replace(/https?:\/\/rzp\.io\/[^\s]+/g, (url) => truncatePaymentLink(url));
+  };
+
+  const getConfidenceMeta = (confidence) => {
+    if (confidence === null || confidence === undefined) {
+      return { pct: 0, tier: 'N/A', color: 'var(--text-muted)', bg: 'rgba(255,255,255,0.05)' };
+    }
+    const pct = typeof confidence === 'number' ? Math.round(confidence * 100) : parseInt(confidence, 10) || 0;
+    if (pct >= 80) {
+      return { pct, tier: 'HIGH', color: 'var(--accent-success)', bg: 'rgba(16, 185, 129, 0.15)' };
+    } else if (pct >= 60) {
+      return { pct, tier: 'MEDIUM', color: 'var(--accent-warning)', bg: 'rgba(245, 158, 11, 0.15)' };
+    } else {
+      return { pct, tier: 'MODERATE', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.15)' };
+    }
+  };
+
+  const formatAuditTimestamp = (dateInput) => {
+    if (!dateInput) return '';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    const day = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    return `${day} · ${time}`;
+  };
+
+  const calcRecoveryDuration = (startInput, endInput) => {
+    if (!startInput || !endInput) return '2m 14s';
+    const s = new Date(startInput).getTime();
+    const e = new Date(endInput).getTime();
+    const diffMs = Math.abs(e - s);
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return `${diffSec || 14}s`;
+    const mins = Math.floor(diffSec / 60);
+    const secs = diffSec % 60;
+    if (mins < 60) return `${mins}m ${secs}s`;
+    const hours = Math.floor(mins / 60);
+    return `${hours}h ${mins % 60}m`;
+  };
+
+  const getCaseTypeLabel = (type) => {
+    if (type === 'subscription_renewal_failure') return 'Subscription renewal failure';
+    if (type === 'checkout_abandoned') return 'Checkout abandonment';
+    if (type === 'payment_failure') return 'Payment failure';
+    return (type || 'Revenue risk').replace(/_/g, ' ');
   };
 
   const runRiskDetector = async () => {
@@ -236,8 +310,8 @@ function App() {
     <div className="container">
       <header>
         <div className="logo-section">
-          <h1>AI Revenue Recovery Dashboard</h1>
-          <p>Real-time Risk Detection, ML Diagnostics & Recovery Playbooks</p>
+          <h1>REVIVE PAY  </h1>
+          <p>AI Revenue Recovery Dashboard</p>
         </div>
         <div className="actions-section">
           {/* Theme Switcher */}
@@ -801,33 +875,60 @@ function App() {
                 padding: '1.5rem',
                 boxShadow: 'var(--card-shadow)'
               }}>
-                {/* 1. Header: AI Recovery Analysis + Confidence Badge */}
-                <div className="ai-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                {/* 1. Header: AI Recovery Analysis + Confidence Meter */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.6rem' }}>
                   <span style={{ 
-                    fontSize: '0.92rem', 
+                    fontSize: '0.85rem', 
                     fontWeight: 800, 
+                    textTransform: 'uppercase', 
                     letterSpacing: '0.04em', 
                     color: 'var(--text-primary)',
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '0.5rem' 
                   }}>
-                    🧠 AI RECOVERY ANALYSIS
+                     AI RECOVERY ANALYSIS
                   </span>
-                  {selectedCase.diagnosis ? (
-                    <span style={{ 
-                      fontSize: '0.8rem', 
-                      fontWeight: 800, 
-                      letterSpacing: '0.04em',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--bg-secondary)',
-                      color: 'var(--accent-primary)',
-                      border: '1px solid var(--border-color)'
-                    }}>
-                      {Math.round(selectedCase.confidence * 100)}% CONFIDENCE
-                    </span>
-                  ) : (
+                  {selectedCase.diagnosis ? (() => {
+                    const { pct, tier, color, bg } = getConfidenceMeta(selectedCase.confidence);
+                    return (
+                      <div style={{
+                        backgroundColor: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        padding: '0.45rem 0.8rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.2rem',
+                        minWidth: '150px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                            MODEL CONFIDENCE
+                          </span>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            color: color,
+                            backgroundColor: bg,
+                            padding: '0.05rem 0.35rem',
+                            borderRadius: '3px',
+                            letterSpacing: '0.03em'
+                          }}>
+                            {tier}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                            {pct}%
+                          </span>
+                          <div style={{ flex: 1, height: '6px', backgroundColor: 'var(--border-color)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${pct}%`, height: '100%', backgroundColor: color, borderRadius: '3px', transition: 'width 0.3s ease' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })() : (
                     <span className="ai-confidence low">UNDIAGNOSED</span>
                   )}
                 </div>
@@ -1000,7 +1101,7 @@ function App() {
                             </>
                           ) : (
                             <>
-                              <span>⚡ EXECUTE RECOVERY</span>
+                              <span> EXECUTE RECOVERY</span>
                               <ArrowRight size={16} />
                             </>
                           )}
@@ -1040,151 +1141,324 @@ function App() {
               </div>
             </div>
 
-
-            {/* Section 3.5: Payment Link (if exists) */}
-            {selectedCase.payment_link && (
-              <div className="drawer-section" style={{ marginTop: '1.5rem', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1rem' }}>💳</span>
-                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>RAZORPAY PAYMENT LINK</h3>
-                </div>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Link</span>
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500, fontFamily: 'monospace' }}>
-                    {truncatePaymentLink(selectedCase.payment_link)}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button 
-                    onClick={() => window.open(selectedCase.payment_link, '_blank')}
-                    style={{
-                      flex: 1,
-                      padding: '0.6rem 0.8rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      backgroundColor: 'var(--accent-primary)',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.4rem',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = 'var(--accent-primary-hover)'}
-                    onMouseOut={(e) => e.target.style.backgroundColor = 'var(--accent-primary)'}
-                  >
-                    🔗 View Link
-                  </button>
-                  
-                  <button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(selectedCase.payment_link);
-                      showToast('Payment link copied to clipboard!', 'success');
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '0.6rem 0.8rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      backgroundColor: 'var(--bg-card)',
-                      color: 'var(--text-primary)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.4rem',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.backgroundColor = 'var(--border-color)';
-                      e.target.style.borderColor = 'var(--accent-primary)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.backgroundColor = 'var(--bg-card)';
-                      e.target.style.borderColor = 'var(--border-color)';
-                    }}
-                  >
-                    📋 Copy Link
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Section 4: Audit Trail */}
             <div className="drawer-section" style={{ marginTop: '1.5rem' }}>
-              <h3>Audit Trail Log</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, letterSpacing: '0.04em' }}>AUDIT TRAIL</h3>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>End-to-End Decision Lineage</span>
+              </div>
+              
               <div className="timeline" style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '1rem',
+                gap: '1.25rem',
                 position: 'relative',
                 paddingLeft: '1.5rem',
                 borderLeft: '2px solid var(--border-color)',
                 marginLeft: '0.5rem',
-                marginTop: '0.5rem'
+                marginTop: '0.75rem'
               }}>
-                {selectedCase.audit_logs && selectedCase.audit_logs.length > 0 ? (
-                  selectedCase.audit_logs.map((log) => {
-                    let color = 'var(--text-secondary)';
-                    if (log.step === 'detected') color = 'var(--accent-primary)';
-                    if (log.step === 'diagnosed') color = 'var(--accent-ai)';
-                    if (log.step === 'decided') color = 'var(--accent-primary)';
-                    if (log.step === 'policy-checked') {
-                      color = log.status === 'blocked' ? 'var(--accent-danger)' :
-                              (log.status === 'needs_human' ? 'var(--accent-warning)' : 'var(--accent-success)');
-                    }
-                    if (log.step === 'executed') color = 'var(--accent-primary)';
-                    if (log.step === 'resolved') color = 'var(--accent-success)';
+                {(() => {
+                  const rawLogs = selectedCase.audit_logs || [];
+                  const hasExecutedOrLink = rawLogs.some(l => l.step === 'payment_link_created' || l.step === 'executed' || l.step === 'retry_failed');
+                  const filteredLogs = rawLogs.filter(log => {
+                    if (log.step === 'action_triggered' && hasExecutedOrLink) return false;
+                    if (log.step === 'customer_notified') return false;
+                    if (log.step === 'resolved') return false;
+                    return true;
+                  });
 
+                  if (filteredLogs.length === 0 && !selectedCase.status) {
                     return (
-                      <div key={log.id} className="timeline-item" style={{ position: 'relative' }}>
-                        <div className="timeline-dot" style={{
-                          position: 'absolute',
-                          left: '-2.05rem',
-                          top: '0.25rem',
-                          width: '10px',
-                          height: '10px',
-                          borderRadius: '50%',
-                          backgroundColor: color,
-                          border: '2px solid var(--bg-card)',
-                          boxShadow: `0 0 0 2px var(--border-color)`
-                        }}></div>
-                        
-                        <div className="timeline-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
-                          <span style={{ 
-                            fontSize: '0.75rem', 
-                            fontWeight: 700, 
-                            textTransform: 'uppercase',
-                            color: color,
-                            letterSpacing: '0.02em'
-                          }}>
-                            {log.step.replace(/-/g, ' ')}
-                          </span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.35 }}>
-                            {log.message}
-                          </span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            {new Date(log.created_at).toLocaleString('en-IN', {
-                              hour: '2-digit', minute: '2-digit', second: '2-digit',
-                              day: '2-digit', month: 'short'
-                            })}
-                          </span>
-                        </div>
-                      </div>
+                      <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                        No audit logs available for this case.
+                      </p>
                     );
-                  })
-                ) : (
-                  <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem' }}>
-                    No audit logs available for this case.
-                  </p>
-                )}
+                  }
+
+                  return (
+                    <>
+                      {filteredLogs.map((log) => {
+                        const step = log.step || '';
+                        const msg = log.message || '';
+                        
+                        // Extract decision action
+                        const rawAction = log.action || (msg.match(/Action\.([A-Z_]+)/)?.[1]) || (msg.match(/decided:\s*([A-Za-z0-9_.]+)/i)?.[1]) || selectedCase.recommended_action || 'SEND_PAYMENT_LINK';
+                        const cleanAction = rawAction.replace(/^RecoveryAction\./i, '').replace(/[^A-Za-z0-9_]/g, '').trim();
+                        const actionLabel = (ACTION_DISPLAY_MAP[cleanAction]?.label || cleanAction.replace(/_/g, ' ')).toUpperCase();
+
+                        // Extract diagnosis code & confidence
+                        const diagCode = (selectedCase.type || 'REVENUE_RISK').replace(/[\s-]+/g, '_').toUpperCase();
+                        const confMatch = msg.match(/Confidence:\s*(\d+%?)/i);
+                        const confVal = confMatch ? confMatch[1] : (selectedCase.confidence ? `${Math.round(selectedCase.confidence * 100)}%` : '89%');
+
+                        let stepIcon = '✓';
+                        let stepTitle = 'STEP';
+                        let stepColor = 'var(--accent-success)';
+                        let lines = [];
+
+                        if (step === 'detected') {
+                          stepIcon = '✓';
+                          stepTitle = 'DETECTED';
+                          stepColor = 'var(--accent-success)';
+                          lines = [
+                            'Revenue risk identified',
+                            `${formatCurrency(selectedCase.amount)} at risk`
+                          ];
+                        } else if (step === 'diagnosed') {
+                          stepIcon = '✓';
+                          stepTitle = 'DIAGNOSED';
+                          stepColor = 'var(--accent-success)';
+                          lines = [
+                            diagCode,
+                            `Gemini confidence: ${confVal.endsWith('%') ? confVal : `${confVal}%`}`
+                          ];
+                        } else if (step === 'decided' || step === 'decision') {
+                          stepIcon = '✓';
+                          stepTitle = 'DECISION MADE';
+                          stepColor = 'var(--accent-success)';
+                          lines = [
+                            actionLabel
+                          ];
+                        } else if (step === 'policy-checked' || step === 'policy_checked') {
+                          const isBlocked = log.status === 'blocked' || selectedCase.policy_status === 'BLOCKED';
+                          const isNeedsHuman = log.status === 'needs_human' || selectedCase.policy_status === 'NEEDS_HUMAN';
+                          
+                          if (isBlocked) {
+                            stepIcon = '✕';
+                            stepTitle = 'POLICY BLOCKED';
+                            stepColor = 'var(--accent-danger)';
+                            lines = [selectedCase.policy_reason || 'Automated recovery blocked'];
+                          } else if (isNeedsHuman) {
+                            stepIcon = '⚠';
+                            stepTitle = 'ESCALATED TO HUMAN';
+                            stepColor = 'var(--accent-warning)';
+                            lines = ['Manual review required'];
+                          } else {
+                            stepIcon = '✓';
+                            stepTitle = 'POLICY APPROVED';
+                            stepColor = 'var(--accent-success)';
+                            lines = ['Automated recovery permitted'];
+                          }
+                        } else if (step === 'payment_link_created' || step === 'executed' || step === 'action_triggered') {
+                          const isFailed = log.status === 'failed' || log.step === 'retry_failed';
+                          if (isFailed) {
+                            stepIcon = '✕';
+                            stepTitle = 'ACTION FAILED';
+                            stepColor = 'var(--accent-danger)';
+                            lines = [
+                              'Razorpay Test Mode',
+                              'Payment retry failed'
+                            ];
+                          } else {
+                            stepIcon = '✓';
+                            stepTitle = 'ACTION EXECUTED';
+                            stepColor = 'var(--accent-success)';
+                            lines = [
+                              'Razorpay Test Mode',
+                              (cleanAction === 'RETRY_PAYMENT' || cleanAction === 'RETRY_SUBSCRIPTION') ? 'Payment retry initiated' : 'Payment link created'
+                            ];
+                          }
+                        } else if (step === 'human_escalated') {
+                          stepIcon = '⚠';
+                          stepTitle = 'ESCALATED TO HUMAN';
+                          stepColor = 'var(--accent-warning)';
+                          lines = [
+                            'Escalated to human support',
+                            'Case assigned for manual review'
+                          ];
+                        } else if (step === 'retry_failed') {
+                          stepIcon = '✕';
+                          stepTitle = 'RETRY FAILED';
+                          stepColor = 'var(--accent-danger)';
+                          lines = [
+                            'Razorpay Gateway',
+                            'Payment retry failed'
+                          ];
+                        } else {
+                          stepIcon = '✓';
+                          stepTitle = step.replace(/[-_]/g, ' ').toUpperCase();
+                          stepColor = 'var(--accent-primary)';
+                          lines = [sanitizeLogMessage(msg)];
+                        }
+
+                        return (
+                          <div key={log.id} className="timeline-item" style={{ position: 'relative' }}>
+                            <div className="timeline-dot" style={{
+                              position: 'absolute',
+                              left: '-2.05rem',
+                              top: '0.22rem',
+                              width: '10px',
+                              height: '10px',
+                              borderRadius: '50%',
+                              backgroundColor: stepColor,
+                              border: '2px solid var(--bg-card)',
+                              boxShadow: '0 0 0 2px var(--border-color)'
+                            }}></div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.5rem'
+                              }}>
+                                <div style={{
+                                  fontSize: '0.84rem',
+                                  fontWeight: 800,
+                                  color: stepColor,
+                                  letterSpacing: '0.04em',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem'
+                                }}>
+                                  <span>{stepIcon}</span>
+                                  <span>{stepTitle}</span>
+                                </div>
+                                {log.created_at && (
+                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                    {formatAuditTimestamp(log.created_at)}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{
+                                paddingLeft: '1.1rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.15rem',
+                                fontSize: '0.84rem',
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.45
+                              }}>
+                                {lines.map((line, idx) => (
+                                  <div key={idx} style={{
+                                    color: idx === 0 && (stepTitle === 'DIAGNOSED' || stepTitle === 'DECISION MADE') ? 'var(--text-primary)' : 
+                                           (line.includes('₹') || line.includes('at risk') ? 'var(--text-primary)' : 'var(--text-secondary)'),
+                                    fontWeight: (idx === 0 && (stepTitle === 'DIAGNOSED' || stepTitle === 'DECISION MADE')) || line.includes('₹') ? 600 : 400
+                                  }}>
+                                    {line}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Dynamic Milestone: Awaiting Customer Payment */}
+                      {selectedCase.status === 'open' && (selectedCase.payment_link || rawLogs.some(l => l.step === 'action_triggered' || l.step === 'executed' || l.step === 'payment_link_created' || l.step === 'customer_notified')) && (
+                        <div className="timeline-item" style={{ position: 'relative' }}>
+                          <div className="timeline-dot" style={{
+                            position: 'absolute',
+                            left: '-2.05rem',
+                            top: '0.22rem',
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--bg-card)',
+                            border: '2px solid #3B82F6',
+                            boxShadow: '0 0 0 2px var(--border-color)'
+                          }}></div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '0.5rem'
+                            }}>
+                              <div style={{
+                                fontSize: '0.84rem',
+                                fontWeight: 800,
+                                color: '#3B82F6',
+                                letterSpacing: '0.04em',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem'
+                              }}>
+                                <span>○</span>
+                                <span>AWAITING PAYMENT</span>
+                              </div>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                {formatAuditTimestamp(selectedCase.updated_at || new Date())}
+                              </span>
+                            </div>
+
+                            <div style={{
+                              paddingLeft: '1.1rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.15rem',
+                              fontSize: '0.84rem',
+                              color: 'var(--text-secondary)',
+                              lineHeight: 1.45
+                            }}>
+                              <div>Customer notified</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dynamic Milestone: Recovered */}
+                      {selectedCase.status === 'recovered' && (
+                        <div className="timeline-item" style={{ position: 'relative' }}>
+                          <div className="timeline-dot" style={{
+                            position: 'absolute',
+                            left: '-2.05rem',
+                            top: '0.22rem',
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--accent-success)',
+                            border: '2px solid var(--bg-card)',
+                            boxShadow: '0 0 0 2px var(--border-color)'
+                          }}></div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '0.5rem'
+                            }}>
+                              <div style={{
+                                fontSize: '0.84rem',
+                                fontWeight: 800,
+                                color: 'var(--accent-success)',
+                                letterSpacing: '0.04em',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem'
+                              }}>
+                                <span>✓</span>
+                                <span>RECOVERED</span>
+                              </div>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                {formatAuditTimestamp(selectedCase.updated_at || new Date())}
+                              </span>
+                            </div>
+
+                            <div style={{
+                              paddingLeft: '1.1rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.15rem',
+                              fontSize: '0.84rem',
+                              color: 'var(--text-secondary)',
+                              lineHeight: 1.45
+                            }}>
+                              <div>Payment completed successfully</div>
+                              <div style={{ color: 'var(--accent-success)', fontWeight: 600 }}>
+                                {formatCurrency(selectedCase.amount)} recovered
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </>
@@ -1193,14 +1467,67 @@ function App() {
 
       {/* Toast Alert Container */}
       <div className={`toast ${toast.show ? 'show' : ''}`} style={{
-        borderLeft: toast.type === 'danger' ? '4px solid var(--accent-danger)' : '4px solid var(--accent-success)'
+        borderLeft: toast.type === 'danger' ? '4px solid var(--accent-danger)' : '4px solid var(--accent-success)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '0.85rem',
+        padding: '0.9rem 1.25rem',
+        maxWidth: '520px',
+        zIndex: 9999
       }}>
         {toast.type === 'danger' ? (
-          <AlertTriangle size={20} style={{ color: 'var(--accent-danger)' }} />
+          <AlertTriangle size={20} style={{ color: 'var(--accent-danger)', flexShrink: 0, marginTop: '2px' }} />
         ) : (
-          <CheckCircle2 size={20} style={{ color: 'var(--accent-success)' }} />
+          <CheckCircle2 size={20} style={{ color: 'var(--accent-success)', flexShrink: 0, marginTop: '2px' }} />
         )}
-        <span>{toast.message}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
+          <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{toast.message}</span>
+          {toast.link && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', flexWrap: 'wrap' }}>
+              <a 
+                href={toast.link} 
+                target="_blank" 
+                rel="noreferrer"
+                style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  backgroundColor: 'var(--accent-primary)',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: '0 2px 4px rgba(37,99,235,0.25)',
+                  cursor: 'pointer'
+                }}
+              >
+                 Open Razorpay Link
+              </a>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(toast.link);
+                  showToast('Payment link copied to clipboard!', 'success');
+                }}
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  backgroundColor: 'var(--bg-input)',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                 Copy
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -15,8 +15,26 @@ from .database import get_db, engine, Base
 from .models import Customer, Order, Payment, Subscription, RecoveryCase, AuditLog
 from .schemas import CustomerSchema, PaymentSchema, PaymentWithCustomer, RecoveryStats, RecoveryCaseWithCustomer
 
+from sqlalchemy import inspect, text
+
 # Auto-create tables in the connected database if they don't already exist
 Base.metadata.create_all(bind=engine)
+
+# Auto-sync missing columns for SQLite/Postgres
+try:
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+        for table_name, table in Base.metadata.tables.items():
+            if inspector.has_table(table_name):
+                existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
+                for col in table.columns:
+                    if col.name not in existing_cols:
+                        col_type = col.type.compile(engine.dialect)
+                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}"))
+                        conn.commit()
+                        print(f"Auto-migrated column: {table_name}.{col.name}")
+except Exception as e:
+    print(f"Warning: Auto-migration check encountered an error: {e}")
 
 app = FastAPI(title="AI Revenue Recovery API")
 
